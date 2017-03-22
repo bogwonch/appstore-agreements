@@ -11,20 +11,49 @@ User Identification
 Yandex
 :   For free apps no ID is required. For paid apps they must be an *authorized user*. They must provide payment details.
 
+    'yandex' says User:U canBuy(App;A)
+      if A isFree.
+
+    'yandex' says User:U canBuy(App:A)
+      if U isAuthorized,
+         U hasPaymentDetails(P).
+
+
 Google Play
 :   Name, address and billing details (which may be shared with third parties.)
+
+    'google' says User:U isAuthorized
+        if U hasName(Name),
+           U hasAddress(Address),
+           U hasPaymentDetails(P).
+
+    'google' says ThirdParty:P canKnow(User:U).
 
 Amazon
 :   Amazon account.
 
+    'amazon' says User:U isAuthorized
+      if U hasAmazonAccount(A).
+
 Aptiode
 :   ID and contact details. You agree not to provide false information. In practice when using the app no ID is required.
+
+    'aptoide' says User:U isAuthorized
+      if U hasID(ID),
+         U hasContactDetails(D).
+
+Apple
+:   Apple ID 
 
 What information do they take
 -----------------------------
 
+Apple
+:   Technical data about the device, system, software and peripherals; which the Application Provider may use provided it is in a form that does not personally identify the user.    
+
 Yandex
 :   Type and model of the mobile device, OS, mobile app version and identifier, list of content on the device, usage info of apps and various services, mobile number and SIM serial number, geolocation info (which the user may deny), search queries, other *technical* information.
+
 
 Google Play
 :   App installation data (for malware checking.) To make this service more effective they also take device ID, URLs, one or more cookies[^1]. You may opt out of malware checking however.
@@ -50,20 +79,47 @@ Amazon
 Aptoide
 :   Through an approved partner's payment processor.
 
+Apple
+:   Through a credit/debit card or gift card.
+
 Who pays whom
 -------------
 
 Yandex
-:   The user pays the supplier of the app (the developer).
+:   The user pays the supplier of the app (the developer)
+
+    'yandex' says User:U mustPayFor(Supplier, Purchase:P)
+      if U hasPurchased(P),
+         Purchase isSuppliedBy(Supplier).
 
 Google Play
 :   The user pays Google Commerce or the a provider where Google is acting as an agent.
 
+    'google' says User:U mustPayFor('google-commerce', Purchase:P)
+      if U hasPurchased(P).
+
 Amazon
 :   User pays Amazon.
 
+    'amazon' says User:U mustPayFor('amazon', Purchase:P)
+      if U hasPurchased(P).
+
 Aptoide
 :   The store owner (through Aptoide)
+
+    'aptoide' says User:U mustPayFor('aptoide', Purchase:P)
+      if U hasPurchased(P).
+
+Apple
+:   The user pays Apple.  If a user use *family sharing* then the Family Organiser pays Apple.
+
+    'apple' says User:FO mustPayFor('apple', Purchase:P)
+      if U hasPurchased(P),
+         U isInFamily(F),
+         FO isFamilyOrganiserFor(F).
+
+    'apple' says User:U mustPayFor('apple', Purchase:P)
+      if U hasPurchased(P).
 
 Who sets the prices
 -------------------
@@ -80,14 +136,31 @@ Amazon
 Aptoide
 :   The developer and the store owners[^2]. Aptoide may round prices.
 
+Apple
+:   Developer picks a price tier from Apple's list of prices.  Pricing tier used to set worldwide pricing.
+
 Refunds
 -------
 
 Yandex
 :   Available for fifteen minutes after paying for the content. For IAP there are no refunds.
 
+    'yandex' says Purchase:P canBeRefunded
+      if P isContent
+      where age(P) < 0.25.
+
 Google Play
 :   Supposedly only for defective content, or content which has been removed from the store (and your device) by Google. However you may request a refund through the Play Store app for two hours after you purchase it. The developer agreement says that a refund for an amount less than 10 USD may be issued upto 48 hours after the purchase; for amounts above 10USD it depends on who processed the payment.
+
+    'google' says Purchase:P canBeRefunded
+      where age(P) < 2.
+
+    'google' says Purchase:P canBeRefunded
+      where age(P) < 48, amount(P) < 10.
+
+    'google' says A can-say Purchase:P canBeRefunded
+      if A hasProcessed(P)
+      where amount(P) >= 10.
 
 Amazon
 :   No.
@@ -95,20 +168,75 @@ Amazon
 Aptoide
 :   24 hours.
 
+    'aptoide' says Purchase:P canBeRefunded
+      where age(P) < 24.
+
+Apple
+:   14 days.
+
+    'apple' says Purchase:P canBeRefunded
+      where age(P) < 336.
+
+
 Age of Use
 ----------
 
 Yandex
 :   Users must be at least 14. If beneath 18 they must have consent from their guardian.
 
+    'yandex' says User:U canUseStore
+      where age(U) >= 18.
+
+    'yandex' says User:Guardian can-say
+      User:U canUseStore
+      if Guardian isGuardianOf(U)
+      where age(U) >= 14.
+
 Google Play
 :   Users must be at least 13. If beneath 18 they must have consent from their guardian.
+
+    'google' says User:U canUseStore
+      where age(U) >= 18.
+
+    'google' says User:Guardian can-say
+      User:U canUseStore
+      if Guardian isGuardianOf(U)
+      where age(U) >= 13.
 
 Amazon
 :   Bellow 18 with consent of a guardian. Nothing to do with alcohol under 21.
 
+    'amazon' says User:U canUseStore
+      where age(U) >= 18.
+
+    'amazon' says User:Guardian can-say
+      User:U canUseStore
+      if Guardian isGuardianOf(U)
+      where age(U) < 18.
+
+    'amazon' says User:U canSeeRestrictedContent
+      where age(U) >= 21.
+
 Aptoide
 :   You must be of a legal age to form a contract with Aptoide, and not be barred from using Aptoide in the laws of your country[^3].
+
+    'aptoide' says User:U canUseStore
+      if U isFromCountry(C),
+         Age isLegalAgeIn(C)
+      where age(U) >= Age.
+
+Apple
+:   Must be 13 or older (or equivalent minimum age in home country) to create an apple ID.  Parents or legal guardians can create an ID for you through Family sharing, or by an approved educational institution.
+
+    'amazon' says User:U canUseStore
+      where age(U) >= 13.
+
+    'apple' says User:Guardian can-say
+      User:U canUseStore
+      if Guardian isGuardianOf(U).
+
+    'apple' says 'educational-institution' can-say
+      User:U canUseStore.
 
 Updates
 -------
@@ -125,6 +253,9 @@ Amazon
 Aptoide
 :   You agree that Aptoide can check for apps and you will receive updates.
 
+Apple
+:   No obligation (but the default is to install them).  Developers are resposible for maintaining their software.
+
 Store Moderation
 ----------------
 
@@ -140,6 +271,9 @@ Amazon
 Aptoide
 :   Aptoide may review, screen, modify and remove apps but is not obliged to. The Aptiode *trusted app* sign indicates an automatic virus checker has checked the app and *does not* imply Aptoide actually checked it.
 
+Apple
+:   Nothing I can see, however they do have a stringent review process.
+
 What can you do with the content
 --------------------------------
 
@@ -148,6 +282,10 @@ Google Play
 
 Aptoide
 :   You may not modify, rent, lease, loan, sell, distribute or create derivative works based on this Content. You may use the software.
+
+Apple
+:   Apps are licensed to you not sold.  You may use the content on only Apple devices.  If the device is later sold you must remove the content before selling.  You may not distribute, copy, reverse-engineer, disassemble, attempt to derive the source code of, modify, or create derivative works of the Licensed Application, any updates, or any part thereof.
+
 
 Others
 ------
@@ -206,6 +344,9 @@ Amazon
 Aptoide
 :   Email. Using the same email you use as a Google Play developer account may speed apps through the store.
 
+Apple
+:   Apple Developer ID.
+
 EULA
 ----
 
@@ -220,6 +361,9 @@ Amazon
 
 Aptoide
 :   They provide a default one, but suggest developers may provide one that supercedes it.
+
+Apple
+:   You must provide one or accept the default.
 
 Content Restrictions
 --------------------
